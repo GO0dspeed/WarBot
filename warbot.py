@@ -1,43 +1,39 @@
-import re, random
+import re
 from discord.ext import commands
+from discord.utils import get
+import discord
 
-bot = commands.Bot(command_prefix='!')
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+bot = commands.Bot(command_prefix='!', intents=intents)
 NAME = re.compile(r"(.*)#(.*)")
 
 @bot.command()
-async def team(ctx, arg="799945229"):
-    message = bot.get_message("")
+async def war(ctx, arg):
+    channel = bot.get_channel(1022198665806356510)
+    emoji = '<:greenup:1022253759360929952>'
+    mess = await ctx.send(f"Starting a War against {arg}. React with {emoji} if you can participate")
+    await mess.add_reaction(emoji)
 
-    # voice_channel = bot.get_channel(140920999041302528)
-    # reaction_members_size = len(voice_channel.members)
-    team_size = int(arg)
+    def check(reaction, user):
+        return reaction.message == mess and str(reaction.emoji) == emoji and user != bot.user
+
     team = []
+
+    while True:
+        user = await bot.wait_for("reaction_add", check=check)
+        team.append(user[1])
+        if len(team) == 3:
+            break
+
     output = ""
-
-    if team_size > 8 or team_size == 799945229:
-        team_size = 8
-
-    if team_size <= 0 or team_size <= 0:
-        await ctx.send("I can't make a team without members!")
-    else:
-        if team_size >= 1:
-            for member in reactions.members:
-                    name = NAME.search(str(member))
-                    if name:
-                        team.append(name.group(1))
-        
-            if team_size < team_size:
-                team = random.sample(team, team_size)
-            else:
-                team = random.sample(team, team_size)
-
-
-            output += "Creating a random team without aaron...\n"
-            c = 1
-            for player in team:
-                output += "{}. {}\n".format(c, player)
-                c += 1
+    output += f"Creating a lineup for the war against {arg}...\n"
+    c = 1
+    for player in team:
+        output += "{}. <@!{}>\n".format(c, player.id)
+        c += 1
             
-            await ctx.send(output)
+    await channel.send(output)
 
-bot.run('')
+bot.run('MTAyMjIwMDY5NjcyMTkyMDA3MQ.GxDS2x.ChQOy8uMqCpiDIXWc0OowQ3Wdd6id88QKuvc-I')
