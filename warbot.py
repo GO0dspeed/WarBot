@@ -13,6 +13,11 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 newline = "\n"
 none = "None"
 
+def _compare_lists(old, new):
+    old_list = set(old)
+    new_list = set(new)
+
+
 @bot.command()
 async def war(ctx, opponent, date, time, team_size):
     """Send a message to create a lineup for a war.
@@ -27,13 +32,22 @@ async def war(ctx, opponent, date, time, team_size):
     embed.add_field(name="How to sign up: ", value=f"React with {emoji} if you can participate", inline=False)
     mess = await channel.send(embed=embed)
     await mess.add_reaction(emoji)
+    team = []
 
     while True:
         msg = await channel.fetch_message(mess.id)
         reactions = msg.reactions
         for react in reactions:
-            team = [user.id async for user in react.users() if user != bot.user]
+            users = [user.id async for user in react.users() if user != bot.user]
 
+        for i in users:
+            if i not in team:
+                team.append(i)
+        for i in team:
+            if i not in users:
+                team.remove(i)
+
+                
         lineup = team[0:int(team_size)]
         
         backups = team[int(team_size)::]
