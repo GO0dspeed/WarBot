@@ -22,8 +22,8 @@ def _compare_lists(old, new):
 async def war(ctx, opponent, date, time, team_size):
     """Send a message to create a lineup for a war.
     """
-    emoji = '<:greenup:1022253759360929952>'
-    channel = bot.get_channel(1022198665806356510) # customize this value to the channel where you want messages to appear
+    emoji = '<:greenup:1022643911728058407>'
+    channel = bot.get_channel(981999185400320040) # customize this value to the channel where you want messages to appear
     adjusted_team_size = int(team_size) - 1
     embed = discord.Embed(title=f"War Signup vs {opponent}", color=discord.Color.red())
     embed.add_field(name="Date: ", value=date, inline=False)
@@ -60,6 +60,6 @@ async def war(ctx, opponent, date, time, team_size):
         embed1.add_field(name="Current Lineup: ", value=f'{newline.join(f"<@!{player}>" for player in lineup) if len(lineup) > 0 else "None"}', inline=False)
         embed1.add_field(name="Current Backups: ", value=f'{newline.join(f"<@!{player}>" for player in backups) if len(backups) > 0 else "None"}', inline=False)
         await mess.edit(embed = embed1)
-        
+
         asyncio.sleep(1)
 bot.run(***REMOVED***) # Bot Token
