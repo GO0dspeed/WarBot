@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.command()
-async def war(ctx, opponent, date, time):
+async def war(ctx, opponent, date, time, team_size):
     channel = bot.get_channel(1022198665806356510) # customize this value to the channel where you want messages to appear
     emoji = '<:greenup:1022253759360929952>'
     mess = await ctx.send(f"Starting a War against {opponent} on {date} at {time} EST. React with {emoji} if you can participate")
@@ -21,15 +21,10 @@ async def war(ctx, opponent, date, time):
         msg = await ctx.fetch_message(mess.id)
         reactions = msg.reactions
         for react in reactions:
-            users = [user async for user in react.users() if user != bot.user]
-        print(len(users))
-        for user in users:
-            print(user.id)
+            team = [user async for user in react.users() if user != bot.user]
+        if len(team) == team_size:
+            break
         asyncio.sleep(10)
-        # user = await bot.wait_for("reaction_add", check=check)
-        # team.append(user[1])
-        # if len(team) == 3:
-        #     break
 
     output = ""
     output += f"Creating a lineup for the war against {opponent} on {date} at {time} EST...\n"
