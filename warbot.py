@@ -60,5 +60,6 @@ async def war(ctx, opponent, date, time, team_size):
         embed1.add_field(name="Current Lineup: ", value=f'{newline.join(f"<@!{player}>" for player in lineup) if len(lineup) > 0 else "None"}', inline=False)
         embed1.add_field(name="Current Backups: ", value=f'{newline.join(f"<@!{player}>" for player in backups) if len(backups) > 0 else "None"}', inline=False)
         await mess.edit(embed = embed1)
-
+        
+        asyncio.sleep(1)
 bot.run(***REMOVED***) # Bot Token
