@@ -1,8 +1,6 @@
 import asyncio
-from dis import disco
 from discord.ext import commands
 from discord.ext import tasks
-from discord.utils import get
 import discord
 
 
@@ -12,11 +10,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 newline = "\n"
 none = "None"
-
-def _compare_lists(old, new):
-    old_list = set(old)
-    new_list = set(new)
-
 
 @bot.command()
 async def war(ctx, opponent, date, time, team_size):
@@ -60,6 +53,6 @@ async def war(ctx, opponent, date, time, team_size):
         embed1.add_field(name="Current Lineup: ", value=f'{newline.join(f"<@!{player}>" for player in lineup) if len(lineup) > 0 else "None"}', inline=False)
         embed1.add_field(name="Current Backups: ", value=f'{newline.join(f"<@!{player}>" for player in backups) if len(backups) > 0 else "None"}', inline=False)
         await mess.edit(embed = embed1)
-
-        asyncio.sleep(2)
+       
+        await asyncio.sleep(2)
 bot.run('MTAyMjIwMDY5NjcyMTkyMDA3MQ.GxDS2x.ChQOy8uMqCpiDIXWc0OowQ3Wdd6id88QKuvc-I') # Bot Token
