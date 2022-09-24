@@ -45,7 +45,7 @@ async def war(ctx, opponent, date, time, team_size):
         
         backups = team[int(team_size)::]
 
-        embed1 = discord.Embed(title=f"War Signup vs {opponent}", color=discord.Color.red())
+        embed1 = discord.Embed(title=f"War Signup <@&979855289773850706> vs {opponent}", color=discord.Color.red())
         embed1.add_field(name="Date: ", value=date, inline=False)
         embed1.add_field(name=f"Time: ", value=f"{time} EST", inline=False)
         embed1.add_field(name=f"Desired Team Size: ", value=f"{team_size} v {team_size}", inline=False)
