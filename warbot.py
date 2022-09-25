@@ -18,27 +18,27 @@ async def war(ctx, opponent, date, time, team_size):
     emoji = '<:greenup:1022643911728058407>'
     kill_emoji = '⏹️'
     channel = bot.get_channel(981999185400320040) # customize this value to the channel where you want messages to appear
-    adjusted_team_size = int(team_size) - 1
     embed = discord.Embed(title=f"War Signup vs {opponent}", color=discord.Color.red())
     embed.add_field(name="Date: ", value=date, inline=False)
     embed.add_field(name="Time: ", value=f"{time} EST", inline=False)
     embed.add_field(name="Desired Team Size: ", value=f"{team_size} v {team_size}", inline=False)
     embed.add_field(name="How to sign up: ", value=f"React with {emoji} if you can participate", inline=False)
-    tag = await channel.send("<@979855289773850706>")
+    tag = await channel.send("<@&979855289773850706>")
     mess = await channel.send(embed=embed)
     await mess.add_reaction(emoji)
     team = []
+    loop = True
 
-    while True:
+    while loop == True:
         msg = await channel.fetch_message(mess.id)
+        tag_msg = await channel.fetch_message(tag.id)
         reactions = msg.reactions
+        print(reactions)
         for react in reactions:
-            users = [user.id async for user in react.users() if (user != bot.user and react.emoji == emoji) ]
-            if react.emoji == kill_emoji:
-                await tag.delete()
-                await mess.delete()
+            users = [user.id async for user in react.users() if str(react.emoji) == emoji and user != bot.user]
+            if str(react.emoji) == kill_emoji:
+                loop = False
                 break
-                
         for i in users:
             if i not in team:
                 team.append(i)
@@ -61,4 +61,8 @@ async def war(ctx, opponent, date, time, team_size):
         await mess.edit(embed = embed1)
        
         await asyncio.sleep(2)
+
+    await msg.delete()
+    await tag_msg.delete()
+    
 bot.run('MTAyMjIwMDY5NjcyMTkyMDA3MQ.GxDS2x.ChQOy8uMqCpiDIXWc0OowQ3Wdd6id88QKuvc-I') # Bot Token
