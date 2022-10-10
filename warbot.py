@@ -32,8 +32,8 @@ async def war(ctx, opponent, date, time, team_size):
     while loop == True:
         msg = await channel.fetch_message(mess.id)
         tag_msg = await channel.fetch_message(tag.id)
-        reactions = msg.reactions
-        print(reactions)
+        reactions = await msg.reactions
+        await print(reactions)
         for react in reactions:
             users = [user.id async for user in react.users() if str(react.emoji) == emoji and user != bot.user]
             if str(react.emoji) == kill_emoji:
@@ -60,9 +60,9 @@ async def war(ctx, opponent, date, time, team_size):
         embed1.add_field(name="Current Backups: ", value=f'{newline.join(f"<@!{player}>" for player in backups) if len(backups) > 0 else "None"}', inline=False)
         await mess.edit(embed = embed1)
        
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
 
     await msg.delete()
     await tag_msg.delete()
     
-bot.run('MTAyMjIwMDY5NjcyMTkyMDA3MQ.GxDS2x.ChQOy8uMqCpiDIXWc0OowQ3Wdd6id88QKuvc-I') # Bot Token
+bot.run('') # Bot Token
