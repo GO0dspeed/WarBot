@@ -9,7 +9,7 @@ class WarBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.prefix = "!"
+        self.command_prefix = "!"
         self.intents = discord.Intents.default()
         self.intents.message_content = True
         self.intents.reactions = True
