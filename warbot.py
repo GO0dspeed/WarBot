@@ -1,22 +1,21 @@
 import discord
 from discord.ext import commands
+from discord import Intents
 import logging
 from config.config import Config
+import asyncio
 
-from warbot import war
+config = Config()
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+bot = commands.Bot(intents=intents, command_prefix = "!")
 
-class WarBot(commands.Bot):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+async def main():
+    async with bot:
+        await bot.load_extension("extensions.warCog")
+        await bot.start(token=config.token)
 
-        self.command_prefix = "!"
-        self.intents = discord.Intents.default()
-        self.intents.message_content = True
-        self.intents.reactions = True
 
-        self.load_extension("extensions.war")
-    
-
-if __name__ == "__main__":
-    handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-    WarBot.run(token=Config.token, log_handler=handler)
+asyncio.run(main())
