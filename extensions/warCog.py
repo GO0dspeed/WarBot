@@ -45,6 +45,9 @@ class clanWar(commands.Cog):
             elif str(payload.emoji) == self.kill_emoji:
                 await self.message.delete()
                 await self.tag.delete()
+                self.team = []
+                self.lineup = []
+                self.backups = []
             else:
                 pass
 
