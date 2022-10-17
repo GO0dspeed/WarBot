@@ -1,4 +1,5 @@
 *.vscode
 config/config.py
+config/config.py.*
 *.log
 */__pycache__*
