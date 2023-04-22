@@ -2,9 +2,11 @@ import discord
 from discord.ext import commands
 from discord.ext import tasks
 from config.config import Config
+from tinydb import TinyDB, Query
 import random
 
 config = Config()
+db = TinyDB(../data/db.json)
 
 class clanWar(commands.Cog):
     def __init__(self, bot):
@@ -28,7 +30,7 @@ class clanWar(commands.Cog):
 
     async def process_reaction(self, payload: discord.RawReactionActionEvent, r_type=None):
         print("processing reaction")
-        for match in self.match.values():
+        for match in db.match.values():
             if payload.message_id == match["message"].id:
                 print(payload.emoji)
                 print(self.reaction_emoji)
@@ -52,12 +54,12 @@ class clanWar(commands.Cog):
                     pass
 
     async def update_roster_and_post(self, payload):
-        for match in self.match.values():
+        for match in db.match.values():
             if payload.message_id == match["message"].id:
                 print("updating the embed")
                 match["lineup"] = match["team"][0:int(match["team_size"])]
                 match["backups"] = match["team"][int(match["team_size"])::]
-                embed1 = discord.Embed(title=f"War Signup DoX vs {match['opponent']}", color=discord.Color.red())
+                embed1 = discord.Embed(title=f"War Signup vs {match['opponent']}", color=discord.Color.red())
                 embed1.add_field(name="Date: ", value=match['date'], inline=False)
                 embed1.add_field(name=f"Time: ", value=f"{match['time']} EST", inline=False)
                 embed1.add_field(name=f"Desired Team Size: ", value=f"{match['team_size']} v {match['team_size']}", inline=False)
@@ -119,6 +121,7 @@ class clanWar(commands.Cog):
         match["tag"] = await self.announcement_channel.send(f"<@&{self.role}>")
         match["message"] = await self.announcement_channel.send(embed=embed)
         await match["message"].add_reaction(self.reaction_emoji)
+        db.insert(match)
 
 async def setup(bot):
     await bot.add_cog(clanWar(bot))
