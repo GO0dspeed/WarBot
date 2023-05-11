@@ -31,6 +31,7 @@ class clanWar(commands.Cog):
     async def process_reaction(self, payload: discord.RawReactionActionEvent, r_type=None):
         print("processing reaction")
         search = Query()
+        channel = self.bot.get_channel(config.announcement_channel)
         if str(payload.emoji) == self.reaction_emoji:
             if r_type == "add":
                 if payload.user_id != int(self.bot.user.id):
@@ -53,10 +54,8 @@ class clanWar(commands.Cog):
         elif str(payload.emoji) == self.kill_emoji:
             print("deleting the messages")
             try:
-                msg = await discord.Message.fetch(self.message)
-                tag = await discord.Message.fetch(self.tag)
-                print(type(msg))
-                print(type(tag))
+                msg = await channel.fetch_message(payload.message_id)
+                tag = await channel.fetch_message(self.db.search(search.message_id == payload.message_id)[0]["tag"])
                 await msg.delete()
                 await tag.delete()
             except Exception as e:
@@ -97,7 +96,8 @@ class clanWar(commands.Cog):
         print("reaction added")
         await self.process_reaction(payload, "add")
         try:
-            await self.update_roster_and_post(payload)
+            if str(payload.emoji) != self.kill_emoji:
+                await self.update_roster_and_post(payload)
         except Exception as e:
             print(e)
             pass
