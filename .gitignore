@@ -3,4 +3,5 @@ config/config.py
 config/config.py*
 *.log
 */__pycache__*
+*.json
 data/db.json
