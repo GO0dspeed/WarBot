@@ -15,6 +15,7 @@ bot = commands.Bot(intents=intents, command_prefix = "!")
 async def main():
     async with bot:
         await bot.load_extension("extensions.warCog")
+        await bot.load_extension("extensions.statCog")
         await bot.start(token=config.token)
 
 
