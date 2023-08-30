@@ -28,6 +28,12 @@ class clanWar(commands.Cog):
         self.kill_emoji = config.kill_emoji
         self.role = config.role
 
+    def get_current_lineup(self, payload: discord.RawReactionActionEvent):
+        search = Query()
+        if payload.user_id != int(self.bot.user.id):
+            team = self.db.search(search.message_id == payload.message_id)[0]["lineup"]
+            return team
+
     async def process_reaction(self, payload: discord.RawReactionActionEvent, r_type=None):
         print("processing reaction")
         search = Query()
@@ -91,6 +97,18 @@ class clanWar(commands.Cog):
         else:
             pass
 
+    async def dm_added_player(self, original_lineup, payload: discord.RawReactionActionEvent):
+        search = Query()
+        match = self.db.search(search.message_id == payload.message_id)[0]
+        user = self.bot.get_user(match['team'][int(match['team_size'])-1])
+        print(user.id)
+        print(original_lineup)
+        print(user.id in original_lineup)
+        if payload.user_id != self.bot.user.id:
+            if user.id not in original_lineup:
+                print(f"DM'ing new addition to the lineup: {user}")
+                await user.send(f"You have been added to the lineup for {match['opponent']} at {match['date']} : {match['time']} EST")
+                
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         print("reaction added")
@@ -105,9 +123,14 @@ class clanWar(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         print("reaction removed")
+        try:
+            original_lineup = self.get_current_lineup(payload)
+        except Exception as e:
+            print(f"Issue with gettng lineup: {e}")
         await self.process_reaction(payload, "remove")
         try:
             await self.update_roster_and_post(payload)
+            await self.dm_added_player(original_lineup, payload)
         except Exception as e:
             print(e)
             pass
