@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord.ext import tasks
 from config.config import Config
 from tinydb import TinyDB, Query
 import random
@@ -9,17 +8,10 @@ config = Config()
 
 class clanWar(commands.Cog):
     def __init__(self, bot):
-        # self.opponent = ""
-        # self.date = ""
-        # self.time = ""
-        # self.team_size = ""
         self.bot = bot
         self.message = None
         self.tag = None
-        # self.team = []
-        # self.lineup = []
-        # self.backups = []
-        self.db = TinyDB("data/db.json")
+        self.db = TinyDB("data/db-squads.json")
         self.match = {}
         self.newline = "\n"
         self.none = "None"
