@@ -12,6 +12,13 @@ intents.members = True
 intents.message_content = True
 bot = commands.Bot(intents=intents, command_prefix = "!")
 
+@bot.event
+async def on_ready():
+    synced = await bot.tree.sync()
+    print(f"Synced {len(synced)} command(s).")
+    print(f"Commands are {synced}")
+
+
 async def main():
     async with bot:
         await bot.load_extension("extensions.warCog")
