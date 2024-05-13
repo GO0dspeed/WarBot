@@ -1,14 +1,16 @@
 import discord
+from config.config import Config
 from discord.ext import commands
 from tinydb import TinyDB
 from collections import Counter
 import tabulate
 import operator
 
+config = Config()
+
 class statCog(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
-        self.db = TinyDB("data/db.json")
+        self.db = TinyDB(config.db)
 
     @commands.command()
     async def stats(self, ctx):
