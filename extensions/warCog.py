@@ -52,6 +52,13 @@ class RecordMaps(discord.ui.View):
         discord.SelectOption(label="Blood Lake"),
         discord.SelectOption(label="Shadow Falls"),
         discord.SelectOption(label="Crossroads"),
+        discord.SelectOption(label="Foxhunt"),
+        discord.SelectOption(label="Enowapi"),
+        discord.SelectOption(label="Fish Hook"),
+        discord.SelectOption(label="Chain Reaction"),
+        discord.SelectOption(label="After Hours"),
+        discord.SelectOption(label="Liberation"),
+        discord.SelectOption(label="Last Bastion"),
     ])
     async def record_maps(self, interaction: discord.Interaction, select: discord.ui.Select):
         await interaction.response.send_message("Recording maps", ephemeral=True)
