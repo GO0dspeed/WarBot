@@ -44,7 +44,7 @@ class statCog(commands.Cog):
             statslist.append(i)
         statslist.sort(key=operator.itemgetter(1))
         try:
-            table = pd.DataFrame(statslist[::-1], columns=["Player", "Wars"])
+            table = pd.DataFrame(statslist[::-1], columns=["Player", "Wars"], )
             print(table)
         except Exception as e:
             print(e)
