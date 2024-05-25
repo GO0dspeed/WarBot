@@ -3,7 +3,9 @@ from config.config import Config
 from discord.ext import commands
 from tinydb import TinyDB
 from collections import Counter
-import tabulate
+import pandas as pd
+import pdfkit
+import json
 import operator
 
 config = Config()
@@ -15,14 +17,21 @@ class statCog(commands.Cog):
     @commands.command()
     async def stats(self, ctx):
         print("Querying War Stats")
+
         players = []
+
+        with open(config.db, 'r',) as fp:
+            data = json.load(fp)
+        
+        df = pd.json_normalize(data["_default"].values())
+        
         try:
             currentChannel = ctx.channel
         except Exception as e:
             print(e)
 
-        for i in self.db.all():
-            for j in i['lineup']:
+        for i in df.get("lineup"):
+            for j in i:
                 try:
                     players.append(discord.Guild.get_member(ctx.guild, j))
                 except Exception as e:
@@ -35,14 +44,15 @@ class statCog(commands.Cog):
             statslist.append(i)
         statslist.sort(key=operator.itemgetter(1))
         try:
-            table = tabulate.tabulate(statslist[::-1], headers=["Player", "Wars"])
+            table = pd.DataFrame(statslist[::-1], columns=["Player", "Wars"], )
             print(table)
         except Exception as e:
             print(e)
         embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme())
+        image = discord.File(pdfkit.from_string(table.to_html()), filename="stats.pdf")
         try:
-            embed.add_field(name="Table", value=f"```{table}```")
-            await currentChannel.send(embed=embed)
+            embed.set_image(url="attachment://stats.pdf")
+            await currentChannel.send(embed=embed, file=image)
         except Exception as e:
             print(e)
 
