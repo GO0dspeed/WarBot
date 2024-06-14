@@ -5,3 +5,4 @@ config/config.py*
 */__pycache__*
 *.json
 data/db.json
+images/*
