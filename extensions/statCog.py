@@ -4,6 +4,7 @@ from discord.ext import commands
 from collections import Counter
 import pandas as pd
 import dataframe_image
+from tinydb import TinyDB, Query
 import json
 import operator
 import io
@@ -26,6 +27,7 @@ class queryStats(discord.ui.View):
         await interaction.response.send_message("Crunching the Numbers", ephemeral=True)
         self.action = "win_loss"
         self.stop()
+
     @discord.ui.button(label="Last 10 Matches", style=discord.ButtonStyle.blurple)
     async def get_last_10(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("Crunching the Numbers:", ephemeral=True)
@@ -34,18 +36,22 @@ class queryStats(discord.ui.View):
 
 class statCog(commands.Cog):
     def __init__(self, bot):
-        self.db = None
+        self.bot = bot
+        self.db = TinyDB(config.db)
+
+    def get_guild_table(self, guild_id):
+        return self.db.table(str(guild_id))
 
     async def stats_query(self, ctx):
-
-        with open(config.db, 'r',) as fp:
-            data = json.load(fp)
-        df = pd.json_normalize(data["_default"].values())
+        guild_table = self.get_guild_table(ctx.guild.id)
+        data = guild_table.all()
+        df = pd.json_normalize(data)
 
         try:
             currentChannel = ctx.channel
         except Exception as e:
             print(e)
+        
         try:
             statsView = queryStats()
             statsEmbed = discord.Embed()
@@ -59,14 +65,14 @@ class statCog(commands.Cog):
             try:
                 players = []
 
-                for i in df.get("lineup"):
+                for i in df.get("lineup", []):
                     for j in i:
                         try:
                             players.append(discord.Guild.get_member(ctx.guild, j))
                         except Exception as e:
                             print(e)
                             continue
-                
+
                 stats = Counter(players)
                 statslist = []
                 for i in stats.items():
@@ -88,13 +94,13 @@ class statCog(commands.Cog):
                     print(e)
             except Exception as e:
                 print(e)
-        
+
         elif statsView.action == "win_loss":
             record = df.get(["date", "time", "opponent", "result"])
 
             try:   
                 embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme())
-                dataframe_image.export(record.result.value_counts().to_frame(), "images/stats.png")
+                dataframe_image.export(record['result'].value_counts().to_frame(), "images/stats.png")
                 image = discord.File("images/stats.png", filename="stats.png")
                 try:
                     embed.set_image(url="attachment://stats.png")
@@ -104,6 +110,7 @@ class statCog(commands.Cog):
                     print(e)
             except Exception as e:
                 print(e)
+
         elif statsView.action == "last_10":
             record = df.get(["date", "time", "opponent", "result"])
 
@@ -125,8 +132,5 @@ class statCog(commands.Cog):
         print("Querying War Stats")
         await self.stats_query(ctx)
 
-
-
 async def setup(bot):
     await bot.add_cog(statCog(bot))
-        

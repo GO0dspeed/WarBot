@@ -65,7 +65,7 @@ class RecordMaps(discord.ui.View):
         self.maps = select.values
         self.stop()
 
-class warButtons(discord.ui.Modal, title="Pre War Questionairre"):
+class warButtons(discord.ui.Modal, title="Pre War Questionnaire"):
     opponent = discord.ui.TextInput(label="opponent", placeholder="Type who the opponent is")
     date = discord.ui.TextInput(label="date", placeholder="Date of the war")
     time = discord.ui.TextInput(label="time", placeholder="Time of the war (EST)")
@@ -77,7 +77,6 @@ class warButtons(discord.ui.Modal, title="Pre War Questionairre"):
     
     async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         await interaction.response.send_message("An Error occurred", ephemeral=True)
-
         print(f"{error.__traceback__}")
 
 class clanWar(commands.Cog):
@@ -93,195 +92,154 @@ class clanWar(commands.Cog):
         self.reaction_emoji = config.reaction_emoji
         self.kill_emoji = config.kill_emoji
         self.role = config.role
+    
+    def get_guild_table(self, guild_id):
+        return self.db.table(str(guild_id))
 
-    def get_current_lineup(self, payload: discord.RawReactionActionEvent):
+    def get_current_lineup(self, guild_id, payload: discord.RawReactionActionEvent):
         search = Query()
+        table = self.get_guild_table(guild_id)
         if payload.user_id != int(self.bot.user.id):
-            team = self.db.search(search.message_id == payload.message_id)[0]["lineup"]
+            team = table.search((search.message_id == payload.message_id))[0]["lineup"]
             return team
         
-    async def post_match_survey(self, message: discord.Message):
+    async def post_match_survey(self, guild_id, message: discord.Message):
         resultview = RecordResult()
         mapview = RecordMaps()
         resultembed = discord.Embed()
         resultembed.add_field(name="Record Win/Loss", value="Record Win Or Loss")
         await message.edit(embed=resultembed, view=resultview)
         await resultview.wait()
+        search = Query()
+        table = self.get_guild_table(guild_id)
+        match = table.search((search.message_id == message.id))
         if resultview.value == "Cancelled":
-            search = Query()
-            self.db.remove(search.message_id == message.id)
+            table.remove((search.message_id == message.id))
             return
         elif resultview.value == "Win":
-            search = Query()
-            match = self.db.search(search.message_id == message.id)
             match[0]["result"] = "win"
-            self.db.update({"result": match[0]["result"]}, search.message_id == message.id)
         else:
-            search = Query()
-            match = self.db.search(search.message_id == message.id)
             match[0]["result"] = "loss"
-            self.db.update({"result": match[0]["result"]}, search.message_id == message.id)
+        table.update({"result": match[0]["result"]}, (search.message_id == message.id))
+
         mapembed = discord.Embed()
         mapembed.add_field(name="Map Selection", value="Select which maps were played (3 or 5)")
         await message.edit(embed=mapembed, view=mapview)
         await mapview.wait()
-        search = Query()
-        match = self.db.search(search.message_id == message.id)
+        
         if len(mapview.maps) == len(match[0]["best of"]):
             match[0]["maps"] = mapview.maps
-            self.db.update({"maps": match[0]["maps"]}, search.message_id == message.id)
-            return
+            table.update({"maps": match[0]["maps"]}, (search.message_id == message.id))
 
-    async def process_reaction(self, payload: discord.RawReactionActionEvent, r_type=None):
+    async def process_reaction(self, guild_id, payload: discord.RawReactionActionEvent, r_type=None):
         print("processing reaction")
         search = Query()
+        table = self.get_guild_table(guild_id)
         channel = self.bot.get_channel(config.announcement_channel)
         if str(payload.emoji) == self.reaction_emoji:
+            print("entering reaction loop")
             if r_type == "add":
                 if payload.user_id != int(self.bot.user.id):
                     print("not the bot")
-                    if payload.user_id not in self.db.search(search.message_id == payload.message_id)[0]["team"]:
+                    if payload.user_id not in table.search((search.message_id == payload.message_id))[0]["team"]:
                         print(f"Adding {payload.user_id} to the team")
                         try:
-                            team = self.db.search(search.message_id == payload.message_id)
+                            team = table.search((search.message_id == payload.message_id))
                             team[0]["team"].append(payload.user_id)
-                            print(team[0]["team"])
-                            self.db.update({"team": team[0]["team"]}, search.message_id == payload.message_id)
+                            table.update({"team": team[0]["team"]}, (search.message_id == payload.message_id))
                         except Exception as e:
                             print(e)
             elif r_type == "remove":
-                if payload.user_id in self.db.search(search.message_id == payload.message_id)[0]["team"]:
-                    team = self.db.search(search.message_id == payload.message_id)
+                if payload.user_id in table.search((search.message_id == payload.message_id))[0]["team"]:
+                    team = table.search((search.message_id == payload.message_id))
                     team[0]["team"].remove(payload.user_id)
-                    self.db.update({"team": team[0]["team"]}, search.message_id == payload.message_id)            
+                    table.update({"team": team[0]["team"]}, (search.message_id == payload.message_id))
         elif str(payload.emoji) == self.kill_emoji:
             print("deleting the messages")
             try:
                 msg = await channel.fetch_message(payload.message_id)
-                tag = await channel.fetch_message(self.db.search(search.message_id == payload.message_id)[0]["tag"])
-                # Add in the logic to do a post-match survey in the embed
-                await self.post_match_survey(msg)
-                msg = await channel.fetch_message(payload.message_id) # need to do this twice as for some reason passing to the function stops us from deleting the original embed
+                tag = await channel.fetch_message(table.search((search.message_id == payload.message_id))[0]["tag"])
+                await self.post_match_survey(guild_id, msg)
+                msg = await channel.fetch_message(payload.message_id)
                 await msg.delete()
                 await tag.delete()
             except Exception as e:
                 print(e)
-        else:
-            pass
 
-    async def update_roster_and_post(self, payload):
+    async def update_roster_and_post(self, guild_id, payload):
         war = Query()
+        table = self.get_guild_table(guild_id)
         channel = self.bot.get_channel(config.announcement_channel)
-        if self.db.search(war.message_id == payload.message_id):
+        if table.search((war.message_id == payload.message_id)):
             print("updating the embed")
-            match = self.db.search(war.message_id == payload.message_id)[0]
+            match = table.search((war.message_id == payload.message_id))[0]
             match["lineup"] = match["team"][0:int(match["team_size"])]
             match["backups"] = match["team"][int(match["team_size"])::]
             try:
-                self.db.update({"lineup": match["lineup"]}, war.message_id == payload.message_id)
-                self.db.update({"backups": match["backups"]}, war.message_id == payload.message_id)
+                table.update({"lineup": match["lineup"]}, (war.message_id == payload.message_id))
+                table.update({"backups": match["backups"]}, (war.message_id == payload.message_id))
             except Exception as e:
                 print(e)
             embed1 = discord.Embed(title=f"War Signup vs {match['opponent']}", color=discord.Color.red())
             embed1.add_field(name="Date: ", value=match['date'], inline=False)
             embed1.add_field(name=f"Time: ", value=f"{match['time']} EST", inline=False)
-            embed1.add_field(name=f"Desired Team Size: ", value=f"{match['team_size']} v {match['team_size']}", inline=False)
-            embed1.add_field(name="How to sign up: ", value=f"React with {self.reaction_emoji} if you can participate", inline=False)
-            embed1.add_field(name="Current Lineup: ", value=f'{self.newline.join(f"<@!{player}>" for player in match["lineup"]) if len(match["lineup"]) > 0 else "None"}', inline=False)
-            embed1.add_field(name="Current Backups: ", value=f'{self.newline.join(f"<@!{player}>" for player in match["backups"]) if len(match["backups"]) > 0 else "None"}', inline=False)
-            msg = await channel.fetch_message(payload.message_id)
-            try:
-                await msg.edit(embed = embed1)
-            except Exception as e:
-                print(e)
-        else:
-            pass
+            embed1.add_field(name="Team size: ", value=match["team_size"], inline=False)
+            embed1.add_field(name="Best Of: ", value=match["best of"], inline=False)
+            embed1.add_field(name="Lineup", value=f'{self.newline.join(f"<@!{player}>" for player in match["lineup"]) if len(match["lineup"]) > 0 else "None"}', inline=False)
+            embed1.add_field(name="Backups", value=f'{self.newline.join(f"<@!{player}>" for player in match["backups"]) if len(match["backups"]) > 0 else "None"}', inline=False)
+            message = await channel.fetch_message(payload.message_id)
+            await message.edit(embed=embed1)
+    
+    async def dm_added_player(self, user):
+        await user.send("You have been added to the lineup")
 
-    async def dm_added_player(self, original_lineup, payload: discord.RawReactionActionEvent):
-        search = Query()
-        match = self.db.search(search.message_id == payload.message_id)[0]
-        user = self.bot.get_user(match['team'][int(match['team_size'])-1])
-        print(user.id)
-        print(original_lineup)
-        print(user.id in original_lineup)
-        if payload.user_id != self.bot.user.id:
-            if user.id not in original_lineup:
-                print(f"DM'ing new addition to the lineup: {user}")
-                await user.send(f"You have been added to the lineup for {match['opponent']} at {match['date']} : {match['time']} EST")
-                
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        print("reaction added")
-        await self.process_reaction(payload, "add")
-        try:
-            if str(payload.emoji) != self.kill_emoji:
-                await self.update_roster_and_post(payload)
-        except Exception as e:
-            print(e)
-            pass
+        guild_id = payload.guild_id
+        await self.process_reaction(guild_id, payload, r_type="add")
+        await self.update_roster_and_post(guild_id, payload)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        print("reaction removed")
-        try:
-            original_lineup = self.get_current_lineup(payload)
-        except Exception as e:
-            print(f"Issue with gettng lineup: {e}")
-        await self.process_reaction(payload, "remove")
-        try:
-            await self.update_roster_and_post(payload)
-            await self.dm_added_player(original_lineup, payload)
-        except Exception as e:
-            print(e)
-            pass
+        guild_id = payload.guild_id
+        await self.process_reaction(guild_id, payload, r_type="remove")
+        await self.update_roster_and_post(guild_id, payload)
 
     @discord.app_commands.command(name="war")
-    async def war(self, interaction: discord.Interaction):
-        """
-        Send a message and create a lineup for a war.
-        """
-        print("starting a war")
+    async def war(self, ctx):
+        guild_id = ctx.guild.id
+        table = self.get_guild_table(guild_id)
+        print("war was initiated")
         try:
-            self.announcement_channel = self.bot.get_channel(config.announcement_channel)
+            modal = warButtons()
+            await ctx.response.send_modal(modal)
+            await modal.wait()
         except Exception as e:
-            print(e)
-        try:
-            pre_survey = warButtons()
-            await interaction.response.send_modal(pre_survey)
-            await pre_survey.wait()
-        except Exception as e:
-            print(f"Failed to send modal {e}")
-        match = self.match[f"{pre_survey.opponent}-{random.getrandbits(10)}"] = {}
-        match["team"] = []
-        match["lineup"] = []
-        match["backups"] = []
-        match["team_size"] = str(pre_survey.team_size)
-        match["opponent"] = str(pre_survey.opponent)
-        match["date"] = str(pre_survey.date)
-        match["time"] = str(pre_survey.time)
-        match["result"] = None
-        match["maps"] = []
-        match["best of"] = str(pre_survey.best_of)
-        print(f"Announcements will go to {self.announcement_channel}")      
-        embed = discord.Embed(title=f"War Signup vs {pre_survey.opponent}", color=discord.Color.red())
-        embed.add_field(name="Date: ", value=f"{pre_survey.date}", inline=False)
-        embed.add_field(name="Time: ", value=f"{pre_survey.time} EST", inline=False)
-        embed.add_field(name="Desired Team Size: ", value=f"{pre_survey.team_size} v {pre_survey.team_size}", inline=False)
-        embed.add_field(name="Best Of", value=f"Best Of {pre_survey.best_of}", inline=False)
-        embed.add_field(name="How to sign up: ", value=f"React with {self.reaction_emoji} if you can participate", inline=False)
+            print(f"An error occurred...{e}")
+            return
+        channel = self.bot.get_channel(config.announcement_channel)
         if self.role == "":
-            self.tag = await self.announcement_channel.send(f"{commands.context.Context.guild.default_role}")
+            self.tag = await channel.send(f"{ctx.guild.default_role}")
         else:
-            self.tag = await self.announcement_channel.send(f"<@&{self.role}>")
-        match["tag"] = self.tag.id
-        self.message = await self.announcement_channel.send(embed=embed)
-        match["message_id"] = self.message.id
-        try:
-            self.db.insert(match)
-        except Exception as e:
-            print(e)
-            print(type(match))
-        await self.message.add_reaction(self.reaction_emoji)
+            self.tag = await channel.send(f"<@&{self.role}>")
+        embed1 = discord.Embed(title=f"War Signup vs {modal.opponent.value}", color=discord.Color.red())
+        embed1.add_field(name="Date: ", value=modal.date.value, inline=False)
+        embed1.add_field(name=f"Time: ", value=f"{modal.time.value} EST", inline=False)
+        embed1.add_field(name="Team size: ", value=modal.team_size.value, inline=False)
+        embed1.add_field(name="Best Of: ", value=modal.best_of.value, inline=False)
+        embed1.add_field(name="Lineup", value="None", inline=False)
+        embed1.add_field(name="Backups", value="None", inline=False)
+        self.message = await channel.send(embed=embed1)
+        if self.message is not None:
+            await self.message.add_reaction(self.reaction_emoji)
+            war_id = random.randint(0, 10000)
+            try:
+                print("inside the war id section")
+                table.insert({"war_id": war_id, "message_id": self.message.id, "tag": self.tag.id, "opponent": modal.opponent.value, "date": modal.date.value, "time": modal.time.value, "team_size": modal.team_size.value, "best of": modal.best_of.value, "team": [], "lineup": [], "backups": []})
+            except Exception as e:
+                print(f"Error inserting {e}")
+            print("insert completed")
+            war = Query()
 
 async def setup(bot):
     await bot.add_cog(clanWar(bot))
