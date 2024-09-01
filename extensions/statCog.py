@@ -4,10 +4,8 @@ from discord.ext import commands
 from collections import Counter
 import pandas as pd
 import dataframe_image
-from tinydb import TinyDB, Query
-import json
+from tinydb import TinyDB
 import operator
-import io
 
 config = Config()
 
