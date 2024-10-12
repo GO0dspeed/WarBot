@@ -15,7 +15,7 @@ class statCog(commands.Cog):
         self.db = TinyDB(config.db)
 
     @commands.command()
-    async def stats(self, ctx):
+    async def warstats(self, ctx):
         print("Querying War Stats")
 
         players = []
