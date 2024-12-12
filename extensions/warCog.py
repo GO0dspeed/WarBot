@@ -30,40 +30,41 @@ class RecordResult(discord.ui.View):
         self.value = "Cancelled"
         self.stop()
 
-class RecordMaps(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.maps = []
+# class RecordMaps(discord.ui.View):
+#     def __init__(self):
+#         super().__init__()
+#         self.maps = []
 
-    @discord.ui.select(placeholder="Maps", min_values=3, max_values=5, options=[
-        discord.SelectOption(label="Desert Glory"),
-        discord.SelectOption(label="Sandstorm"),
-        discord.SelectOption(label="Abandoned"),
-        discord.SelectOption(label="Bitter Jungle"),
-        discord.SelectOption(label="Requiem"),
-        discord.SelectOption(label="Blizzard"),
-        discord.SelectOption(label="Guidance"),
-        discord.SelectOption(label="Sujo"),
-        discord.SelectOption(label="Vigilance"),
-        discord.SelectOption(label="The Mixer"),
-        discord.SelectOption(label="Rats Nest"),
-        discord.SelectOption(label="Night Stalker"),
-        discord.SelectOption(label="Death Trap"),
-        discord.SelectOption(label="Blood Lake"),
-        discord.SelectOption(label="Shadow Falls"),
-        discord.SelectOption(label="Crossroads"),
-        discord.SelectOption(label="Foxhunt"),
-        discord.SelectOption(label="Enowapi"),
-        discord.SelectOption(label="Fish Hook"),
-        discord.SelectOption(label="Chain Reaction"),
-        discord.SelectOption(label="After Hours"),
-        discord.SelectOption(label="Liberation"),
-        discord.SelectOption(label="Last Bastion"),
-    ])
-    async def record_maps(self, interaction: discord.Interaction, select: discord.ui.Select):
-        await interaction.response.send_message("Recording maps", ephemeral=True)
-        self.maps = select.values
-        self.stop()
+#     @discord.ui.select(placeholder="Maps", min_values=3, max_values=5, options=[
+#         discord.SelectOption(label="Desert Glory"),
+#         discord.SelectOption(label="Sandstorm"),
+#         discord.SelectOption(label="Abandoned"),
+#         discord.SelectOption(label="Bitter Jungle"),
+#         discord.SelectOption(label="Requiem"),
+#         discord.SelectOption(label="Blizzard"),
+#         discord.SelectOption(label="Guidance"),
+#         discord.SelectOption(label="Sujo"),
+#         discord.SelectOption(label="Vigilance"),
+#         discord.SelectOption(label="The Mixer"),
+#         discord.SelectOption(label="Rats Nest"),
+#         discord.SelectOption(label="Night Stalker"),
+#         discord.SelectOption(label="Death Trap"),
+#         discord.SelectOption(label="Blood Lake"),
+#         discord.SelectOption(label="Shadow Falls"),
+#         discord.SelectOption(label="Crossroads"),
+#         discord.SelectOption(label="Foxhunt"),
+#         discord.SelectOption(label="Enowapi"),
+#         discord.SelectOption(label="Fish Hook"),
+#         discord.SelectOption(label="Chain Reaction"),
+#         discord.SelectOption(label="After Hours"),
+#         discord.SelectOption(label="Liberation"),
+#         discord.SelectOption(label="Last Bastion"),
+#         discord.SelectOption(label="Frostfire"),
+#     ])
+#     async def record_maps(self, interaction: discord.Interaction, select: discord.ui.Select):
+#         await interaction.response.send_message("Recording maps", ephemeral=True)
+#         self.maps = select.values
+#         self.stop()
 
 class warButtons(discord.ui.Modal, title="Pre War Questionnaire"):
     opponent = discord.ui.TextInput(label="opponent", placeholder="Type who the opponent is")
@@ -89,9 +90,7 @@ class clanWar(commands.Cog):
         self.newline = "\n"
         self.none = "None"
         self.announcement_channel = None
-        self.reaction_emoji = config.reaction_emoji
         self.kill_emoji = config.kill_emoji
-        self.role = config.role
     
     def get_guild_table(self, guild_id):
         return self.db.table(str(guild_id))
@@ -105,7 +104,6 @@ class clanWar(commands.Cog):
         
     async def post_match_survey(self, guild_id, message: discord.Message):
         resultview = RecordResult()
-        mapview = RecordMaps()
         resultembed = discord.Embed()
         resultembed.add_field(name="Record Win/Loss", value="Record Win Or Loss")
         await message.edit(embed=resultembed, view=resultview)
@@ -122,21 +120,12 @@ class clanWar(commands.Cog):
             match[0]["result"] = "loss"
         table.update({"result": match[0]["result"]}, (search.message_id == message.id))
 
-        mapembed = discord.Embed()
-        mapembed.add_field(name="Map Selection", value="Select which maps were played (3 or 5)")
-        await message.edit(embed=mapembed, view=mapview)
-        await mapview.wait()
-        
-        if len(mapview.maps) == len(match[0]["best of"]):
-            match[0]["maps"] = mapview.maps
-            table.update({"maps": match[0]["maps"]}, (search.message_id == message.id))
-
     async def process_reaction(self, guild_id, payload: discord.RawReactionActionEvent, r_type=None):
         print("processing reaction")
         search = Query()
         table = self.get_guild_table(guild_id)
-        channel = self.bot.get_channel(config.announcement_channel)
-        if str(payload.emoji) == self.reaction_emoji:
+        channel = self.bot.get_channel(int(table.search(search.configuration.exists())[0]['configuration']['announcement_channel']))
+        if str(payload.emoji) == table.search(search.configuration.exists())[0]['configuration']['reaction_emoji']:
             print("entering reaction loop")
             if r_type == "add":
                 if payload.user_id != int(self.bot.user.id):
@@ -169,7 +158,7 @@ class clanWar(commands.Cog):
     async def update_roster_and_post(self, guild_id, payload):
         war = Query()
         table = self.get_guild_table(guild_id)
-        channel = self.bot.get_channel(config.announcement_channel)
+        channel = self.bot.get_channel(int(table.search(war.configuration.exists())[0]['configuration']['announcement_channel']))
         if table.search((war.message_id == payload.message_id)):
             print("updating the embed")
             match = table.search((war.message_id == payload.message_id))[0]
@@ -207,6 +196,7 @@ class clanWar(commands.Cog):
 
     @discord.app_commands.command(name="war")
     async def war(self, ctx):
+        search = Query()
         guild_id = ctx.guild.id
         table = self.get_guild_table(guild_id)
         print("war was initiated")
@@ -217,21 +207,24 @@ class clanWar(commands.Cog):
         except Exception as e:
             print(f"An error occurred...{e}")
             return
-        channel = self.bot.get_channel(config.announcement_channel)
-        if self.role == "":
-            self.tag = await channel.send(f"{ctx.guild.default_role}")
-        else:
-            self.tag = await channel.send(f"<@&{self.role}>")
-        embed1 = discord.Embed(title=f"War Signup vs {modal.opponent.value}", color=discord.Color.red())
-        embed1.add_field(name="Date: ", value=modal.date.value, inline=False)
-        embed1.add_field(name=f"Time: ", value=f"{modal.time.value} EST", inline=False)
-        embed1.add_field(name="Team size: ", value=modal.team_size.value, inline=False)
-        embed1.add_field(name="Best Of: ", value=modal.best_of.value, inline=False)
-        embed1.add_field(name="Lineup", value="None", inline=False)
-        embed1.add_field(name="Backups", value="None", inline=False)
-        self.message = await channel.send(embed=embed1)
+        try:
+            channel = self.bot.get_channel(int(table.search(search.configuration.exists())[0]['configuration']['announcement_channel']))
+            if table.search(search.configuration.exists())[0]['configuration']['role'] == '':
+                self.tag = await channel.send(f"{ctx.guild.default_role}")
+            else:
+                self.tag = await channel.send(f"<@&{table.search(search.configuration.exists())[0]['configuration']['role']}>")
+            embed1 = discord.Embed(title=f"War Signup vs {modal.opponent.value}", color=discord.Color.red())
+            embed1.add_field(name="Date: ", value=modal.date.value, inline=False)
+            embed1.add_field(name=f"Time: ", value=f"{modal.time.value} EST", inline=False)
+            embed1.add_field(name="Team size: ", value=modal.team_size.value, inline=False)
+            embed1.add_field(name="Best Of: ", value=modal.best_of.value, inline=False)
+            embed1.add_field(name="Lineup", value="None", inline=False)
+            embed1.add_field(name="Backups", value="None", inline=False)
+            self.message = await channel.send(embed=embed1)
+        except Exception as e:
+            print(f"failed to send initial message: {e}")
         if self.message is not None:
-            await self.message.add_reaction(self.reaction_emoji)
+            await self.message.add_reaction(table.search(search.configuration.exists())[0]['configuration']['reaction_emoji'])
             war_id = random.randint(0, 10000)
             try:
                 print("inside the war id section")
