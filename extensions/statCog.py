@@ -62,25 +62,26 @@ class statCog(commands.Cog):
         if statsView.action == "activity":
             try:
                 players = []
-
-                for i in df.get("lineup", []):
-                    for j in i:
-                        try:
+                try:
+                    for i in df.get("lineup", []):
+                        for j in i:
                             players.append(discord.Guild.get_member(ctx.guild, j))
-                        except Exception as e:
-                            print(e)
-                            continue
+                except Exception as e:
+                    print(f"Failed to get linup and tie to the guild: {e}")                        
 
                 stats = Counter(players)
                 statslist = []
-                for i in stats.items():
-                    statslist.append(i)
-                statslist.sort(key=operator.itemgetter(1))
+                try:
+                    for i in stats.items():
+                        statslist.append(i)
+                    statslist.sort(key=operator.itemgetter(1))
+                except Exception as e:
+                    print(f"Failed to generate statslist and sort: {e}")
                 try:
                     table = pd.DataFrame(statslist[::-1], columns=["Player", "Wars"], )
                     print(table)
                 except Exception as e:
-                    print(e)
+                    print(f"Failed to create dataframe with players and wars: {e}")
                 embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme(), )
                 dataframe_image.export(table, "images/stats.png")
                 image = discord.File("images/stats.png", filename="stats.png")
@@ -89,9 +90,9 @@ class statCog(commands.Cog):
                     await currentChannel.send(file=image, embed=embed)
                     await message.delete()
                 except Exception as e:
-                    print(e)
+                    print(f"Failed to update the embed: {e}")
             except Exception as e:
-                print(e)
+                print(f"Somethings fucked: {e}")
 
         elif statsView.action == "win_loss":
             record = df.get(["date", "time", "opponent", "result"])
