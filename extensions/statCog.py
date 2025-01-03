@@ -62,12 +62,17 @@ class statCog(commands.Cog):
         if statsView.action == "activity":
             try:
                 players = []
-                try:
-                    for i in df.get("lineup", []):
+                for i in df.get("lineup", []):
+                    try:
                         for j in i:
-                            players.append(discord.Guild.get_member(ctx.guild, j))
-                except Exception as e:
-                    print(f"Failed to get linup and tie to the guild: {e}")                        
+                            try:
+                                players.append(discord.Guild.get_member(ctx.guild, int(j)))
+                            except Exception as e:
+                                print(f"Exception tying player to guild: {e}: Offending values: {j} {i}")
+                                continue
+                    except Exception as e:
+                        print(f"Failed to get linup from dataframe: {e}: Offending value: {j}: {i}")
+                        continue                        
 
                 stats = Counter(players)
                 statslist = []
