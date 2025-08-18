@@ -6,6 +6,7 @@ import pandas as pd
 import dataframe_image
 from tinydb import TinyDB
 import operator
+import asyncio
 
 config = Config()
 
@@ -88,7 +89,7 @@ class statCog(commands.Cog):
                 except Exception as e:
                     print(f"Failed to create dataframe with players and wars: {e}")
                 embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme(), )
-                dataframe_image.export(table, "images/stats.png")
+                await asyncio.to_thread(dataframe_image.export, table, "images/stats.png")
                 image = discord.File("images/stats.png", filename="stats.png")
                 try:
                     embed.set_image(url="attachment://stats.png")
@@ -104,7 +105,7 @@ class statCog(commands.Cog):
 
             try:   
                 embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme())
-                dataframe_image.export(record['result'].value_counts().to_frame(), "images/stats.png")
+                await asyncio.to_thread(dataframe_image.export, record['result'].value_counts().to_frame(), "images/stats.png")
                 image = discord.File("images/stats.png", filename="stats.png")
                 try:
                     embed.set_image(url="attachment://stats.png")
@@ -120,7 +121,7 @@ class statCog(commands.Cog):
 
             try:
                 embed = discord.Embed(title="War Activity Stats", color=discord.Color.dark_theme())
-                dataframe_image.export(record.tail(10), "images/stats.png")
+                await asyncio.to_thread(dataframe_image.export, record.tail(10), "images/stats.png")
                 image = discord.File("images/stats.png", filename="stats.png")
                 try:
                     embed.set_image(url="attachment://stats.png")
